@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Patchwork — finish each other's art & code</title>
+<style>
+  :root{
+    --sage:#9caf88;
+    --emerald:#056b45;
+    --beige:#efe6d6;
+    --bg:#0f1112;
+    --card:#111417;
+    --muted: #bfc7bf;
+    --glass: rgba(255,255,255,0.03);
+    --accent: var(--sage);
+    --radius:14px;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background: linear-gradient(180deg,#07120f 0%, #0f1112 60%);
+    color:var(--beige);
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    padding:24px;
+  }
+
+  /* NAV */
+  .nav{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    max-width:1100px;
+    margin:0 auto 22px;
+  }
+  .logo{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    cursor:pointer;
+    text-decoration:none;
+    color:var(--beige);
+  }
+  .logo svg{width:34px;height:34px}
+  .brand{
+    font-weight:700;
+    letter-spacing:0.4px;
+    font-size:18px;
+  }
+  .tag{
+    font-size:12px;color:var(--muted);margin-top:-4px;
+  }
+  .nav-links{
+    display:flex;
+    gap:10px;
+    align-items:center;
+  }
+  .btn{
+    background:var(--emerald);
+    color:white;
+    padding:8px 12px;
+    border-radius:10px;
+    border:none;
+    cursor:pointer;
+    font-weight:600;
+    box-shadow:0 6px 18px rgba(0,0,0,0.5);
+  }
+  .ghost{
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.06);
+    color:var(--beige);
+    padding:6px 10px;border-radius:10px;cursor:pointer;
+  }
+
+  /* layout */
+  .container{
+    max-width:1100px;margin:0 auto;
+    display:grid;grid-template-columns:1fr 340px;gap:20px;
+  }
+  .panel{
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:var(--radius);
+    padding:18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  }
+  /* home feed */
+  .controls{
+    display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap;
+  }
+  .filters{display:flex;gap:8px;}
+  .filter-btn{
+    background:var(--glass);
+    color:var(--beige);
+    border-radius:10px;padding:8px 10px;border:none;cursor:pointer;font-weight:600;
+  }
+  .search{
+    margin-left:auto;display:flex;gap:8px;align-items:center;
+  }
+  .search input{
+    background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--beige);padding:8px 10px;border-radius:10px;min-width:180px;
+  }
+
+  .grid{
+    display:grid;grid-template-columns: repeat(2, 1fr); gap:14px;
+  }
+  .card{
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border-radius:12px; overflow:hidden; display:flex;flex-direction:column;min-height:220px;
+    border:1px solid rgba(255,255,255,0.03);
+  }
+  .card img{width:100%;height:140px;object-fit:cover;display:block}
+  .card-body{padding:12px;display:flex;flex-direction:column;gap:8px;flex:1}
+  .meta{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted)}
+  .title{font-weight:700}
+  .tags{display:flex;gap:8px;flex-wrap:wrap}
+  .tag-pill{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:8px;font-size:12px;color:var(--muted)}
+
+  .right-column{position:sticky;top:28px;height:fit-content}
+  .profile-card{display:flex;gap:12px;align-items:center}
+  .avatar{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--sage),var(--emerald));display:flex;align-items:center;justify-content:center;font-weight:800;color:#07361f;font-size:20px}
+  .small{font-size:13px;color:var(--muted)}
+  .stat-grid{display:flex;gap:8px;margin-top:10px}
+  .stat{background:var(--glass);padding:8px;border-radius:10px;text-align:center;flex:1}
+
+  /* modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:60}
+  .modal{background:linear-gradient(180deg,#0b1210,#08100e);padding:18px;border-radius:12px;min-width:320px;max-width:760px;color:var(--beige)}
+  .form-row{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+  input[type="text"], textarea, select{
+    background:transparent;border:1px solid rgba(255,255,255,0.04);padding:10px;border-radius:10px;color:var(--beige)
+  }
+  textarea{min-height:100px;resize:vertical}
+
+  /* contribution page */
+  .stages{display:flex;gap:10px;overflow:auto;padding-bottom:6px}
+  .stage{min-width:140px;background:rgba(255,255,255,0.02);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+  .vote{display:flex;gap:6px;align-items:center}
+
+  /* profile and about */
+  .achievements{display:flex;gap:8px;flex-wrap:wrap}
+  .ach{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+
+  /* footer-ish mini */
+  .mini{
+    font-size:13px;color:var(--muted);margin-top:12px;text-align:center
+  }
+
+  /* responsive */
+  @media (max-width:920px){
+    .container{grid-template-columns:1fr; padding-bottom:80px}
+    .grid{grid-template-columns:1fr}
+    .right-column{position:relative;top:auto}
+    .nav{flex-direction:column;align-items:stretch;gap:12px}
+    .search{margin-left:0}
+  }
+  /* small animation */
+  .pulse{animation:pulse 3s infinite}
+  @keyframes pulse{0%{transform:translateY(0)}50%{transform:translateY(-3px)}100%{transform:translateY(0)}}
+  a.text-link{color:var(--sage);text-decoration:none;font-weight:700}
+</style>
+</head>
+<body>
+  <nav class="nav">
+    <a class="logo" data-link="#home">
+      <!-- pencil icon -->
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M3 21v-3.75L14.06 6.19l3.75 3.75L6.75 21H3z" fill="currentColor" style="opacity:.95;fill:var(--beige)"/>
+        <path d="M20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0L15.13 4.12l3.75 3.75 1.83-1.83z" fill="var(--sage)"/>
+      </svg>
+      <div>
+        <div class="brand">Patchwork</div>
+        <div class="tag">unfinished things, finished by strangers</div>
+      </div>
+    </a>
+
+    <div class="nav-links">
+      <button class="ghost" data-link="#home">Home</button>
+      <button class="ghost" data-link="#contribute">Contribute</button>
+      <button class="ghost" data-link="#profile">Profile</button>
+      <button class="ghost" data-link="#about">About</button>
+      <button class="btn" id="login-btn">Login</button>
+    </div>
+  </nav>
+
+  <main id="app">
+    <!-- content gets injected by JS (SPA) -->
+  </main>
+
+  <div id="modal-backdrop" class="modal-backdrop" role="dialog" aria-hidden="true">
+    <div class="modal" id="modal">
+      <!-- dynamic modal content -->
+    </div>
+  </div>
+
+<script>
+/* Simple SPA router + app state with demo data stored in localStorage */
+const app = document.getElementById('app');
+const modalBackdrop = document.getElementById('modal-backdrop');
+const modal = document.getElementById('modal');
+
+const demoProjects = [
+  {
+    id: 'p1',
+    title: 'Sketch: Foggy Library',
+    type: 'Drawing',
+    desc: 'An unfinished charcoal sketch of a moody library. Add shadows or details.',
+    img: 'https://images.unsplash.com/photo-1509099836639-18ba13f009a5?auto=format&fit=crop&w=1200&q=60',
+    owner: 'Ari',
+    stages: [
+      {id:'s1', img:'https://images.unsplash.com/photo-1549880338-65ddcdfd017b?auto=format&fit=crop&w=1200&q=60', author:'Ari', note:'Initial outline'},
+    ],
+    votes: {},
+    createdAt: '2025-11-24'
+  },
+  {
+    id: 'p2',
+    title: 'Poem: unfinished stanza about tides',
+    type: 'Poem',
+    desc: 'Two lines missing — make the ending strong.',
+    img: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=60',
+    owner: 'Nav',
+    stages: [
+      {id:'s1', text:'I keep the moon inside my pocket, small and heavy', author:'Nav', note:'first lines'},
+    ],
+    votes: {},
+    createdAt: '2025-11-21'
+  },
+  {
+    id: 'p3',
+    title: 'Snippet: responsive nav bar (JS)',
+    type: 'Code',
+    desc: 'A partially written nav; missing mobile toggle and ARIA.',
+    img: 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=60',
+    owner: 'Sam',
+    stages: [
+      {id:'s1', code:'/* nav skeleton */', author:'Sam', note:'base'},
+    ],
+    votes: {},
+    createdAt: '2025-11-14'
+  },
+];
+
+function saveState(state){
+  localStorage.setItem('pw_state', JSON.stringify(state));
+}
+function loadState(){
+  const raw = localStorage.getItem('pw_state');
+  if(raw) return JSON.parse(raw);
+  return {
+    user: null,
+    projects: demoProjects,
+    contributions: []
+  };
+}
+let state = loadState();
+
+/* helpers */
+function el(html){ const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstElementChild; }
+function q(sel,root=document){return root.querySelector(sel)}
+function qAll(sel,root=document){return Array.from(root.querySelectorAll(sel))}
+
+function navLinkTo(hash){
+  location.hash = hash;
+}
+
+/* ROUTING */
+function route(){
+  const hash = location.hash.replace('#','') || 'home';
+  if(hash.startsWith('project:')){
+    const id = hash.split(':')[1];
+    renderProjectPage(id);
+  } else {
+    switch(hash){
+      case 'home': renderHome(); break;
+      case 'login': renderLogin(); break;
+      case 'contribute': renderContribute(); break;
+      case 'profile': renderProfile(); break;
+      case 'about': renderAbout(); break;
+      default: renderHome(); break;
+    }
+  }
+}
+
+/* GLOBAL NAV BUTTONS */
+document.body.addEventListener('click', e=>{
+  const link = e.target.closest('[data-link]');
+  if(link){
+    e.preventDefault();
+    const hash = link.getAttribute('data-link').replace('#','');
+    navLinkTo(hash);
+  }
+  if(e.target.id === 'login-btn'){
+    navLinkTo('login');
+  }
+});
+
+/* MODAL */
+function openModal(contentHtml){
+  modal.innerHTML = contentHtml;
+  modalBackdrop.style.display = 'flex';
+  modalBackdrop.setAttribute('aria-hidden','false');
+  modalBackdrop.onclick = (ev)=>{
+    if(ev.target === modalBackdrop){
+      closeModal();
+    }
+  };
+}
+function closeModal(){
+  modalBackdrop.style.display = 'none';
+  modalBackdrop.setAttribute('aria-hidden','true');
+  modal.innerHTML = '';
+}
+
+/* PAGE: HOME */
+function renderHome(){
+  const projects = state.projects;
+  const html = `
+    <div class="container">
+      <section class="panel">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="flex:1">
+            <h2 style="margin:0 0 6px 0">Ongoing projects — feed</h2>
+            <div class="small">A playground of incomplete works people left behind. Add, finish, or vote.</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn" id="start-project">Start your project</button>
+          </div>
+        </div>
+
+        <div class="controls" style="margin-top:12px;">
+          <div class="filters">
+            <button class="filter-btn" data-filter="All">All</button>
+            <button class="filter-btn" data-filter="Code">Code</button>
+            <button class="filter-btn" data-filter="Poem">Poem</button>
+            <button class="filter-btn" data-filter="Drawing">Drawing</button>
+            <button class="filter-btn" data-filter="Popular">Popular</button>
+          </div>
+          <div class="search">
+            <input id="search-input" placeholder="Search projects..." />
+            <button class="ghost" id="clear-search">Clear</button>
+          </div>
+        </div>
+
+        <div id="feed" class="grid" style="margin-top:10px;"></div>
+
+        <div class="mini">Tip: click a card to view contributions and vote. You can also press <em>Start your project</em> to upload an unfinished work.</div>
+      </section>
+
+      <aside class="panel right-column">
+        <div class="profile-card">
+          <div class="avatar" id="mini-avatar">${getUserInitials()}</div>
+          <div>
+            <div style="font-weight:700">${state.user ? state.user.name : 'Guest'}</div>
+            <div class="small">${state.user ? state.user.email : 'Log in to track contributions'}</div>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="small">Your quick stats</div>
+          <div class="stat-grid" style="margin-top:8px">
+            <div class="stat">
+              <div style="font-weight:700">${userContributionsCount()}</div>
+              <div class="small">contributions</div>
+            </div>
+            <div class="stat">
+              <div style="font-weight:700">${userProjectsCount()}</div>
+              <div class="small">your projects</div>
+            </div>
+          </div>
+        </div>
+
+        <hr style="border:none;height:1px;background:rgba(255,255,255,0.02);margin:12px 0;border-radius:4px" />
+        <div>
+          <div style="font-weight:700;margin-bottom:8px">Hot tags</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div class="tag-pill">dark academia</div>
+            <div class="tag-pill">poetry</div>
+            <div class="tag-pill">ui</div>
+            <div class="tag-pill">charcoal</div>
+            <div class="tag-pill">javascript</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  `;
+  app.innerHTML = html;
+
+  // render cards
+  const feed = q('#feed');
+  function renderCards(list){
+    feed.innerHTML = '';
+    list.forEach(p=>{
+      const card = el(`
+        <div class="card" data-id="${p.id}">
+          <img src="${p.img}" alt="" loading="lazy"/>
+          <div class="card-body">
+            <div style="display:flex;justify-content:space-between;align-items:start">
+              <div>
+                <div class="title">${escapeHtml(p.title)}</div>
+                <div class="small">${escapeHtml(p.desc)}</div>
+              </div>
+              <div style="text-align:right">
+                <div class="meta">${p.type}</div>
+                <div class="small" style="margin-top:6px">by <strong>${escapeHtml(p.owner)}</strong></div>
+                <div class="small" style="margin-top:6px">${Object.keys(p.votes||{}).length} votes</div>
+              </div>
+            </div>
+
+            <div style="margin-top:auto;display:flex;justify-content:space-between;align-items:center">
+              <div class="tags">
+                <div class="tag-pill">${p.type}</div>
+                <div class="tag-pill">${p.createdAt}</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="ghost" data-action="view" data-id="${p.id}">View</button>
+                <button class="btn" data-action="start" data-id="${p.id}">Contribute</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `);
+      feed.appendChild(card);
+    });
+  }
+  renderCards(projects);
+
+  // event listeners: filters
+  qAll('.filter-btn').forEach(btn=>{
+    btn.onclick = ()=>{
+      const f = btn.getAttribute('data-filter');
+      if(f === 'All') renderCards(projects);
+      else if(f === 'Popular'){
+        const sorted = [...projects].sort((a,b)=> (Object.keys(b.votes||{}).length) - (Object.keys(a.votes||{}).length));
+        renderCards(sorted);
+      } else {
+        renderCards(projects.filter(p=>p.type===f));
+      }
+    };
+  });
+  q('#search-input').addEventListener('input', (e)=>{
+    const qv = e.target.value.toLowerCase().trim();
+    if(!qv){ renderCards(projects); return; }
+    renderCards(projects.filter(p=> (p.title+p.desc+p.owner).toLowerCase().includes(qv)));
+  });
+  q('#clear-search').onclick = ()=>{ q('#search-input').value=''; renderCards(projects); };
+
+  // start project modal
+  q('#start-project').onclick = ()=>{
+    openModal(startProjectForm());
+  };
+
+  // card actions
+  feed.addEventListener('click', (ev)=>{
+    const v = ev.target.closest('[data-action]');
+    if(!v) return;
+    const id = v.getAttribute('data-id');
+    if(v.getAttribute('data-action') === 'view'){
+      navLinkTo('project:' + id);
+    } else if(v.getAttribute('data-action') === 'start'){
+      openModal(contributeForm(id));
+    }
+  });
+}
+
+/* PAGE: LOGIN (mock) */
+function renderLogin(){
+  app.innerHTML = `
+    <div style="max-width:640px;margin:20px auto">
+      <div class="panel">
+        <h2>Login</h2>
+        <div class="small">Quick login (demo). Real Google/social OAuth requires backend integration.</div>
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button class="btn" id="login-google">Sign in with Google</button>
+          <button class="ghost" id="login-social">Social</button>
+        </div>
+
+        <hr style="margin:12px 0;border:none;height:1px;background:rgba(255,255,255,0.03)" />
+
+        <div>
+          <div class="form-row">
+            <label class="small">Name</label>
+            <input id="login-name" type="text" placeholder="Your name" />
+          </div>
+          <div class="form-row">
+            <label class="small">Email</label>
+            <input id="login-email" type="text" placeholder="you@example.com" />
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" id="login-submit">Login</button>
+            <button class="ghost" id="logout">Logout</button>
+          </div>
+        </div>
+
+        <div class="mini">This demo stores your name locally in your browser. Use a real backend for persistent accounts.</div>
+      </div>
+    </div>
+  `;
+
+  q('#login-google').onclick = ()=> {
+    // mock behavior
+    state.user = {name:'Google User', email:'user@gmail.com'};
+    saveState(state); route();
+  };
+  q('#login-social').onclick = ()=> {
+    state.user = {name:'Social User', email:'social@demo'};
+    saveState(state); route();
+  };
+  q('#login-submit').onclick = ()=>{
+    const name = q('#login-name').value.trim() || 'Anon';
+    const email = q('#login-email').value.trim() || 'anon@local';
+    state.user = {name, email};
+    saveState(state); route();
+  };
+  q('#logout').onclick = ()=>{
+    state.user = null; saveState(state); route();
+  };
+}
+
+/* PAGE: CONTRIBUTION LIST (generic) */
+function renderContribute(){
+  app.innerHTML = `
+    <div class="container" style="grid-template-columns:1fr 300px">
+      <section class="panel">
+        <h2>Contribute — browse projects</h2>
+        <div class="small">Click a project to open its contributions and add your own version.</div>
+        <div id="list" style="margin-top:12px"></div>
+      </section>
+
+      <aside class="panel right-column">
+        <div style="font-weight:700">Contribution tips</div>
+        <ul style="margin-top:8px;color:var(--muted);padding-left:16px">
+          <li>Respect the original creator's note.</li>
+          <li>Keep edits constructive — add notes to explain choices.</li>
+          <li>Vote honestly on quality & creativity.</li>
+        </ul>
+        <div style="margin-top:12px">
+          <button class="btn" id="new-project-quick">Quickly start a project</button>
+        </div>
+      </aside>
+    </div>
+  `;
+  const list = q('#list');
+  state.projects.forEach(p=>{
+    const item = el(`
+      <div class="card" style="flex-direction:row;gap:12px;margin-bottom:12px;padding:10px;align-items:center">
+        <img src="${p.img}" style="width:120px;height:80px;object-fit:cover;border-radius:8px"/>
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between">
+            <div><strong>${escapeHtml(p.title)}</strong><div class="small">${escapeHtml(p.desc)}</div></div>
+            <div style="text-align:right">
+              <div class="small">${p.type}</div>
+              <div style="margin-top:8px"><button class="ghost" data-view="${p.id}">Open</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `);
+    list.appendChild(item);
+  });
+  list.addEventListener('click', (ev)=>{
+    const v = ev.target.closest('[data-view]');
+    if(!v) return;
+    const id = v.getAttribute('data-view');
+    navLinkTo('project:' + id);
+  });
+  q('#new-project-quick').onclick = ()=> openModal(startProjectForm());
+}
+
+/* PROJECT PAGE (detailed) */
+function renderProjectPage(id){
+  const p = state.projects.find(x=>x.id===id);
+  if(!p){ app.innerHTML = `<div style="max-width:900px;margin:40px auto"><div class="panel">Project not found</div></div>`; return; }
+
+  app.innerHTML = `
+    <div class="container">
+      <section class="panel">
+        <div style="display:flex;gap:12px;">
+          <img src="${p.img}" style="width:260px;height:160px;object-fit:cover;border-radius:10px" />
+          <div style="flex:1">
+            <div style="display:flex;justify-content:space-between">
+              <div>
+                <h2 style="margin:0">${escapeHtml(p.title)}</h2>
+                <div class="small">by <strong>${escapeHtml(p.owner)}</strong> • ${p.type}</div>
+              </div>
+              <div style="text-align:right">
+                <div class="small">Votes: <strong id="vote-count">${Object.keys(p.votes||{}).length}</strong></div>
+                <div style="margin-top:8px"><button class="btn" id="vote-up">Vote</button></div>
+              </div>
+            </div>
+
+            <p class="small" style="margin-top:8px">${escapeHtml(p.desc)}</p>
+
+            <div style="margin-top:10px">
+              <button class="ghost" id="add-contribution">Add contribution</button>
+            </div>
+          </div>
+        </div>
+
+        <hr style="margin:12px 0;border:none;height:1px;background:rgba(255,255,255,0.03)" />
+
+        <div>
+          <div style="font-weight:700;margin-bottom:8px">Stages & contributions</div>
+          <div class="stages" id="stages-list">
+            ${p.stages.map(s=>stageCardHtml(s)).join('')}
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel right-column">
+        <div style="font-weight:700">Project details</div>
+        <div class="small" style="margin-top:8px">Created: ${p.createdAt}</div>
+        <div style="margin-top:12px">
+          <button class="btn" id="start-contrib">Contribute</button>
+        </div>
+        <div style="margin-top:14px">
+          <div style="font-weight:700">Community</div>
+          <div class="small" style="margin-top:6px">${Object.keys(p.votes||{}).length} votes • ${p.stages.length} contributions</div>
+        </div>
+      </aside>
+    </div>
+  `;
+
+  // voting
+  q('#vote-up').onclick = ()=>{
+    const userKey = state.user ? state.user.email : 'guest';
+    p.votes[userKey] = true;
+    saveState(state);
+    q('#vote-count').textContent = Object.keys(p.votes||{}).length;
+  };
+
+  // add contribution
+  q('#add-contribution').onclick = ()=> openModal(contributeForm(id));
+  q('#start-contrib').onclick = ()=> openModal(contributeForm(id));
+}
+
+/* STAGE HTML helper */
+function stageCardHtml(s){
+  if(s.img) {
+    return `<div class="stage">
+      <img src="${s.img}" style="width:100%;height:100px;object-fit:cover;border-radius:8px;margin-bottom:8px"/>
+      <div style="font-weight:700">${escapeHtml(s.note||'Contribution')}</div>
+      <div class="small">by ${escapeHtml(s.author||'anon')}</div>
+      <div style="margin-top:8px" class="vote"><button class="ghost" data-vote="${s.id}">👍</button><div class="small" style="margin-left:8px" data-count="${s.id}">0</div></div>
+    </div>`;
+  } else if(s.code) {
+    return `<div class="stage">
+      <pre style="background:rgba(255,255,255,0.02);padding:8px;border-radius:6px;white-space:pre-wrap;font-size:12px">${escapeHtml(s.code)}</pre>
+      <div class="small">by ${escapeHtml(s.author||'anon')}</div>
+      <div style="margin-top:8px" class="vote"><button class="ghost" data-vote="${s.id}">👍</button><div class="small" style="margin-left:8px" data-count="${s.id}">0</div></div>
+    </div>`;
+  } else {
+    return `<div class="stage">
+      <div style="font-weight:700">${escapeHtml(s.text||'Contribution')}</div>
+      <div class="small">by ${escapeHtml(s.author||'anon')}</div>
+      <div style="margin-top:8px" class="vote"><button class="ghost" data-vote="${s.id}">👍</button><div class="small" style="margin-left:8px" data-count="${s.id}">0</div></div>
+    </div>`;
+  }
+}
+
+/* PAGE: PROFILE */
+function renderProfile(){
+  const user = state.user;
+  const html = `
+    <div style="max-width:900px;margin:20px auto">
+      <div class="panel">
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="avatar">${getUserInitials()}</div>
+          <div>
+            <div style="font-weight:800">${user ? user.name : 'Guest'}</div>
+            <div class="small">${user ? user.email : 'Not logged in'}</div>
+          </div>
+          <div style="margin-left:auto">
+            <button class="ghost" id="edit-profile">Edit</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;display:flex;gap:12px">
+          <div style="flex:1">
+            <div style="font-weight:700">Ongoing projects</div>
+            <div style="margin-top:8px" id="profile-projects"></div>
+          </div>
+          <div style="width:260px">
+            <div style="font-weight:700">Achievements</div>
+            <div class="achievements" style="margin-top:8px">
+              <div class="ach">First contribution</div>
+              <div class="ach">3 votes</div>
+              <div class="ach">Top contributor</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  app.innerHTML = html;
+
+  // list user's projects
+  const list = q('#profile-projects');
+  const own = state.projects.filter(p => state.user && p.owner.toLowerCase() === state.user.name?.toLowerCase());
+  list.innerHTML = own.length ? own.map(p=>`<div style="margin-bottom:8px"><a class="text-link" href="#project:${p.id}">${escapeHtml(p.title)}</a></div>`).join('') : `<div class="small">You have not created any projects yet.</div>`;
+
+  q('#edit-profile').onclick = ()=>{
+    openModal(`
+      <h3>Edit profile</h3>
+      <div class="form-row"><label>Name</label><input id="ep-name" value="${escapeHtml(user ? user.name : '')}" /></div>
+      <div class="form-row"><label>Email</label><input id="ep-email" value="${escapeHtml(user ? user.email : '')}" /></div>
+      <div style="display:flex;gap:8px"><button class="btn" id="ep-save">Save</button> <button class="ghost" id="ep-cancel">Cancel</button></div>
+    `);
+    q('#ep-save').onclick = ()=>{
+      const name = q('#ep-name').value.trim();
+      const email = q('#ep-email').value.trim();
+      state.user = {name, email};
+      saveState(state);
+      closeModal(); route();
+    };
+    q('#ep-cancel').onclick = ()=> closeModal();
+  };
+}
+
+/* PAGE: ABOUT */
+function renderAbout(){
+  app.innerHTML = `
+    <div style="max-width:900px;margin:20px auto">
+      <div class="panel">
+        <h2>About Patchwork</h2>
+        <div class="small">Patchwork is a space to upload unfinished creative and technical work so others can contribute, iterate, and improve. This demo is purely client-side.</div>
+
+        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <h3>Purpose</h3>
+            <ul style="color:var(--muted)">
+              <li>Encourage collaborative learning and creative exchange.</li>
+              <li>Allow contributors to practice by finishing real, imperfect work.</li>
+              <li>Create a democratic feedback system via voting.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Guidelines & safety</h3>
+            <ul style="color:var(--muted)">
+              <li>Be respectful and constructive when contributing.</li>
+              <li>Do not post private or copyrighted material you don't own.</li>
+              <li>Keep personal info out of contributions.</li>
+              <li>If you spot misuse, report it to the site moderators (not implemented in demo).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <h3>Cute icons</h3>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="padding:10px;border-radius:10px;background:var(--glass)"><svg width="28" height="28" viewBox="0 0 24 24"><path fill="var(--beige)" d="M12 2L15 8l6 .5-4.6 3.7L18 20l-6-3.2L6 20l1.6-7.8L3 8.5 9 8 12 2z"/></svg></div>
+            <div style="padding:10px;border-radius:10px;background:var(--glass)"><svg width="28" height="28" viewBox="0 0 24 24"><path fill="var(--beige)" d="M12 2a10 10 0 100 20 10 10 0 000-20zM7 11l3 3 7-7"/></svg></div>
+            <div style="padding:10px;border-radius:10px;background:var(--glass)"><svg width="28" height="28" viewBox="0 0 24 24"><path fill="var(--beige)" d="M3 3h18v2H3V3zm2 14v4h14v-4H5zm0-10h14v8H5V7z"/></svg></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* Forms used in modal */
+function startProjectForm(){
+  return `
+    <h3>Start a new project</h3>
+    <div class="form-row"><label>Title</label><input id="np-title" placeholder="Project title"></div>
+    <div class="form-row"><label>Type</label>
+      <select id="np-type"><option>Code</option><option>Poem</option><option>Drawing</option></select>
+    </div>
+    <div class="form-row"><label>Description</label><textarea id="np-desc" placeholder="Short description..."></textarea></div>
+    <div class="form-row"><label>Image URL (optional)</label><input id="np-img" placeholder="https://..."></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="ghost" id="np-cancel">Cancel</button>
+      <button class="btn" id="np-create">Create</button>
+    </div>
+  `;
+}
+
+function contributeForm(projectId){
+  const p = state.projects.find(x=>x.id===projectId);
+  return `
+    <h3>Contribute to: ${escapeHtml(p.title)}</h3>
+    <div class="small">Add an image, text, or code snippet. Explain what you changed in "note".</div>
+    <div class="form-row"><label>Type</label>
+      <select id="con-type"><option>image</option><option>text</option><option>code</option></select>
+    </div>
+    <div class="form-row" id="con-img-row"><label>Image URL</label><input id="con-img" placeholder="https://..." /></div>
+    <div class="form-row" id="con-text-row" style="display:none"><label>Text</label><textarea id="con-text"></textarea></div>
+    <div class="form-row" id="con-code-row" style="display:none"><label>Code</label><textarea id="con-code" placeholder="// small snippet"></textarea></div>
+    <div class="form-row"><label>Note (what did you change?)</label><input id="con-note" placeholder="Short note"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="ghost" id="con-cancel">Cancel</button>
+      <button class="btn" id="con-submit">Submit Contribution</button>
+    </div>
+  `;
+}
+
+/* Modal action bindings are dynamic; set up a mutation observer to attach events when modal content appears */
+const mo = new MutationObserver(()=>attachModalHandlers());
+mo.observe(modal, {childList:true, subtree:true});
+
+function attachModalHandlers(){
+  // start project
+  const create = q('#np-create');
+  if(create){
+    q('#np-cancel').onclick = ()=> closeModal();
+    create.onclick = ()=>{
+      const title = q('#np-title').value.trim() || 'Untitled';
+      const type = q('#np-type').value;
+      const desc = q('#np-desc').value.trim();
+      const img = q('#np-img').value.trim() || randomPlaceholderFor(type);
+      const owner = state.user ? state.user.name : 'Guest';
+      const id = 'p' + Date.now();
+      const newP = {id,title,type,desc,img,owner,stages:[],votes:{},createdAt:new Date().toISOString().slice(0,10)};
+      state.projects.unshift(newP);
+      saveState(state);
+      closeModal();
+      route();
+    };
+  }
+
+  // contribution form
+  const conSubmit = q('#con-submit');
+  if(conSubmit){
+    // type toggles
+    const typeSel = q('#con-type');
+    const showHide = ()=>{
+      q('#con-img-row').style.display = typeSel.value === 'image' ? 'block':'none';
+      q('#con-text-row').style.display = typeSel.value === 'text' ? 'block':'none';
+      q('#con-code-row').style.display = typeSel.value === 'code' ? 'block':'none';
+    };
+    typeSel.onchange = showHide;
+    showHide();
+
+    q('#con-cancel').onclick = ()=> closeModal();
+    conSubmit.onclick = ()=>{
+      const projectHash = modal.innerText.match(/Contribute to: (.+)/);
+      // we passed projectId manually in string earlier there is better way but simple:
+      const titleLine = modal.querySelector('h3') && modal.querySelector('h3').innerText;
+      const projectTitle = titleLine?.replace('Contribute to: ','') || null;
+      const proj = state.projects.find(p=>p.title===projectTitle) || state.projects[0];
+      const type = q('#con-type').value;
+      const obj = {id:'s'+Date.now(), author: state.user ? state.user.name : 'Guest', note:q('#con-note').value.trim()};
+      if(type==='image'){ obj.img = q('#con-img').value.trim() || randomPlaceholderFor(proj.type) }
+      if(type==='text'){ obj.text = q('#con-text').value.trim() || '' }
+      if(type==='code'){ obj.code = q('#con-code').value.trim() || '' }
+      proj.stages.push(obj);
+      state.contributions.push({project:proj.id, stageId:obj.id, author:obj.author});
+      saveState(state);
+      closeModal();
+      // open project page
+      navLinkTo('project:'+proj.id);
+    };
+  }
+
+  // simple event: if modal has stage vote buttons (after dynamic injection), attach - left minimal
+  qAll('[data-vote]').forEach(btn=>{
+    if(!btn._attached){
+      btn._attached = true;
+      btn.onclick = (ev)=>{
+        const id = btn.getAttribute('data-vote');
+        // just visual + store in local state counters
+        const key = 'stage_vote_' + id;
+        const prev = parseInt(localStorage.getItem(key)||'0',10);
+        localStorage.setItem(key, String(prev+1));
+        const counter = document.querySelector(`[data-count="${id}"]`);
+        if(counter) counter.textContent = prev+1;
+      };
+    }
+  });
+
+  // start project quick from contribute page
+  const quick = q('#new-project-quick');
+  if(quick) quick.onclick = ()=> openModal(startProjectForm());
+
+  // create profile edit handled elsewhere
+}
+
+/* UTILS */
+function escapeHtml(s=''){
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+function getUserInitials(){
+  if(!state.user) return 'G';
+  const parts = state.user.name.split(' ');
+  return (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+}
+function userContributionsCount(){
+  return state.contributions ? state.contributions.filter(c=> state.user && c.author === state.user.name).length : 0;
+}
+function userProjectsCount(){
+  return state.projects.filter(p=> state.user && p.owner.toLowerCase()===state.user.name?.toLowerCase()).length;
+}
+function randomPlaceholderFor(type){
+  // reasonable fallback images
+  const map = {
+    Code:'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=60',
+    Poem:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=60',
+    Drawing:'https://images.unsplash.com/photo-1509099836639-18ba13f009a5?auto=format&fit=crop&w=1200&q=60',
+    image:'https://images.unsplash.com/photo-1503023345310-bd7c1de61c7d?auto=format&fit=crop&w=1200&q=60'
+  };
+  return map[type] || map['Drawing'];
+}
+
+/* initial mount */
+window.addEventListener('hashchange', route);
+route();
+
+/* handle start project form creation events (modal hooking) */
+document.addEventListener('click', (e)=>{
+  if(e.target && e.target.id === 'mini-avatar'){
+    navLinkTo('profile');
+  }
+});
+
+// Save modal data if user closes tab
+window.addEventListener('beforeunload', ()=> saveState(state));
+
+</script>
+</body>
+</html>
